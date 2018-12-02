@@ -1,4 +1,4 @@
-# mp-generic-scan
+# "Generic Scan"
 Single block generic parallel scan (CUDA)
 
 ## TODOs
