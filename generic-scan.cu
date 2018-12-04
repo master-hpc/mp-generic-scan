@@ -1,48 +1,54 @@
+#include <iostream>
 
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
+__global__ void scan(int* v, const int n);
 
-#include <stdio.h>
+int main(int argc, char** argv) {
 
+	const int size = 10;
 
-__global__ void prefixSumKernel(int *v, int n)
-{
-	int step = 1;
-	while (step < n) {
+	int h_v[size] = { 3, 7, 1, 10, 6, 9, 5, 2, 8, 4 };
 
-		int indice1 = threadIdx.x;
-		int indice2 = threadIdx.x + step;
+	int *d_v = 0;
 
-		if (indice2 < n) {
-			v[indice2] = v[indice1] + v[indice2];
-		}
+	cudaMalloc((void**)&d_v, size * sizeof(int));
 
-		step = step * 2;
+	cudaMemcpy(d_v, h_v, size * sizeof(int), cudaMemcpyHostToDevice);
+
+	dim3 grdDim(1, 1, 1);
+	dim3 blkDim(size - 1, 1, 1);	
+
+	scan <<<grdDim, blkDim>>>(d_v, size);
+
+	cudaMemcpy(h_v, d_v, size * sizeof(int), cudaMemcpyDeviceToHost);
+
+	cudaFree(d_v);
+
+	for (int i = 0; i < size; i++) {
+		std::cout << (i == 0 ? "{" : "") <<  h_v[i] << (i < size -1 ? " ," : "}");
 	}
-
-}
-
-int main()
-{
-	const int arraySize = 10;
-	int v[arraySize] = { 3, 7, 1, 10, 6, 9, 5, 2, 8, 4 };
-
-	int *dev_v = 0;
-
-	cudaMalloc((void**)&dev_v, arraySize * sizeof(int));
-
-	cudaMemcpy(dev_v, v, arraySize * sizeof(int), cudaMemcpyHostToDevice);
-
-	prefixSumKernel << <1, arraySize - 1 >> >(dev_v, arraySize);
-
-	cudaMemcpy(v, dev_v, arraySize * sizeof(int), cudaMemcpyDeviceToHost);
-
-	cudaFree(dev_v);
-
-	for (int i = 0; i < arraySize; i++) {
-		printf(" %d ", v[i]);
-	}
+	std::cout << std::endl;
 
 	return 0;
 }
 
+
+__global__ void scan(int *v, const int n)
+{
+        int tIdx = threadIdx.x;
+	int step = 1;
+	
+        while (step < n) {
+
+                int indiceDroite = tIdx;
+                int indiceGauche = indiceDroite + step;
+
+                if (indiceGauche < n) {
+                        v[indiceDroite] = v[indiceDroite] + v[indiceGauche];
+                }
+
+                step = step * 2;
+		__syncthreads();
+
+        }
+
+}
