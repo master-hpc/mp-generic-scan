@@ -1,5 +1,5 @@
 # "Generic Scan"
-Single block generic parallel scan (CUDA)
+> Single block generic parallel scan (CUDA)
 
 ## Compilation
 
